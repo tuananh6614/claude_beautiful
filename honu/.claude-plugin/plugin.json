@@ -1,0 +1,14 @@
+{
+  "name": "honu",
+  "version": "0.4.0",
+  "description": "Claude Beautiful: a live sky over Hanoi behind Claude Code (/troi), a quota band above the prompt and a chime when long turns finish.",
+  "author": {
+    "name": "tuananh6614",
+    "url": "https://github.com/tuananh6614"
+  },
+  "homepage": "https://github.com/tuananh6614/claude_beautiful",
+  "repository": "https://github.com/tuananh6614/claude_beautiful",
+  "license": "MIT",
+  "keywords": ["theme", "sky", "weather", "quota", "claude-code"],
+  "types": "./types/index.d.ts"
+}

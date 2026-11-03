@@ -1,0 +1,7 @@
+# Personal helpers that stay on the owner's machine.
+tu-dan.ps1
+tu-dan.log
+# Demo video sources and renders.
+video/
+__pycache__/
+*.log

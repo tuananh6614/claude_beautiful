@@ -1,0 +1,15 @@
+{
+  "name": "claude_theme",
+  "owner": {
+    "name": "tuananh6614"
+  },
+  "description": "Claude Beautiful: a live sky behind Claude Code.",
+  "plugins": [
+    {
+      "name": "honu",
+      "source": "./honu",
+      "version": "0.4.0",
+      "description": "Claude Beautiful: a live sky over Hanoi behind Claude Code (/troi), a quota band above the prompt and a chime when long turns finish."
+    }
+  ]
+}
