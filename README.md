@@ -25,9 +25,34 @@ sun, storms, rainbows and moonlit nights, right behind your chat.
 
 ## Install
 
-About 3 minutes. Steps 1 and 2 are done once. Steps 3 and 4 put the sky in the app, and you repeat them each time the app restarts.
+### Windows: one command
 
-### Before you start
+Open **PowerShell** and run:
+
+```powershell
+irm https://raw.githubusercontent.com/tuananh6614/claude_beautiful/main/install.ps1 | iex
+```
+
+It says what it will do and asks before it starts. Then it:
+
+1. checks Git and Claude Code, and offers to install what is missing;
+2. installs the plugin, with auto-update on;
+3. sets up the automatic paste: the sky appears by itself each time Claude opens, and again when the app reloads its page.
+
+Two switches in the app stay with you. The installer stops and tells you when; each takes a few seconds, once:
+
+- **Developer Mode.** In the Claude app, click the menu button at the top left of the window, then **Help → Troubleshooting → Enable Developer Mode**.
+- **The first paste.** The installer opens Claude's developer tools with the sky in your clipboard. In the Console, type `allow pasting`, press **Enter**, then press **Ctrl+V** and **Enter**.
+
+The installer leaves these two to you on purpose: the paste warning is there so nobody can get you to paste code you didn't choose, and turning it off should be your decision.
+
+After that there's nothing left to do. Close Claude, open it again, restart Windows: the sky comes back by itself. [Paste it automatically](#paste-it-automatically-windows) explains what the script does.
+
+### Step by step (macOS, or if you prefer)
+
+About 3 minutes. Steps 1 and 2 are done once. Steps 3 and 4 put the sky in the app; without the automatic paste, you repeat them each time the app restarts.
+
+#### Before you start
 
 You need three things. Open a terminal to check them: PowerShell on Windows, Terminal on macOS.
 
@@ -47,7 +72,7 @@ You need three things. Open a terminal to check them: PowerShell on Windows, Ter
    curl -fsSL https://claude.ai/install.sh | bash
    ```
 
-### Step 1. Install the plugin (once)
+#### Step 1. Install the plugin (once)
 
 In the terminal, run:
 
@@ -60,19 +85,19 @@ The last line should say `Successfully installed plugin: honu@claude_theme (scop
 
 Now open a new session in the Code tab of the app and type `/` in the prompt box: `/troi`, `/xem` and `/quota` should be in the list.
 
-### Step 2. Turn on Developer Mode (once)
+#### Step 2. Turn on Developer Mode (once)
 
 In the Claude app, open the menu and choose **Help → Troubleshooting → Enable Developer Mode**. On Windows the menu is the **☰** button in the top-left corner of the window.
 
 Once it's on, a **Developer** menu appears. If it doesn't, close the app and open it again.
 
-### Step 3. Copy the sky
+#### Step 3. Copy the sky
 
 In a Code session, type `/troi` and press **Enter**. The plugin copies the sky script to your clipboard and confirms in the chat.
 
 Don't copy anything else until step 4 is done, or you'll paste that instead.
 
-### Step 4. Paste it into the Console
+#### Step 4. Paste it into the Console
 
 1. Press **Ctrl+Shift+I** on Windows (if nothing opens, try **Ctrl+Alt+I**) or **Cmd+Option+I** on macOS. The developer tools open.
 2. Click the **Console** tab.
@@ -82,13 +107,13 @@ Don't copy anything else until step 4 is done, or you'll paste that instead.
 
 Pasting into the Console runs the code inside the app, so only paste code you trust. This script is open source: read it in [`honu/pixel-troi.user.js`](honu/pixel-troi.user.js).
 
-### Did it work?
+#### Did it work?
 
 - Within a second or two, the chat background becomes the sky.
 - The quota band above the prompt shows your limits after Claude's first answer in a session.
 - **Alt+T** opens the background picker.
 
-### After the app restarts
+#### After the app restarts
 
 The sky lasts until the app reloads. After a restart, do steps 3 and 4 again. You only type `allow pasting` once.
 
@@ -96,7 +121,7 @@ On Windows, a small script can do steps 3 and 4 for you each time the app opens:
 
 ## Paste it automatically (Windows)
 
-Optional. Do steps 1 to 4 by hand once first, so Developer Mode is on and the Console allows pasting. Then run this in PowerShell:
+The Windows installer sets this up for you. If you installed step by step, do steps 1 to 4 by hand once, so Developer Mode is on and the Console allows pasting, then run this in PowerShell:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\.claude\plugins\marketplaces\claude_theme\autostart.ps1" -Install
@@ -127,7 +152,9 @@ powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\.claude\plugins\marke
 
 ## Update
 
-Plugins from community marketplaces don't update on their own. Pick one:
+The Windows installer turns auto-update on: new versions arrive by themselves, and the automatic paste uses them the next time Claude opens.
+
+Otherwise, plugins from community marketplaces don't update on their own. Pick one:
 
 - **Turn on auto-update once.** Run `claude` in a terminal, type `/plugin`, open the **Marketplaces** tab, choose `claude_theme`, then **Enable auto-update**.
 - **Update by hand.**
@@ -150,16 +177,26 @@ After an update, open a new session and do steps 3 and 4 again to get the new sk
 | The shortcut doesn't open the developer tools | Developer Mode is still off: do step 2, then try the other shortcut |
 | The Console shows a warning and nothing runs | Type `allow pasting`, press Enter, then paste again |
 | Nothing changes after pasting | Run `/troi` again (anything you copy after it replaces the script), then paste in the **Console** tab and press Enter |
-| The sky is gone | The app reloaded. Do steps 3 and 4 again |
+| The sky is gone | The app reloaded. Do steps 3 and 4 again, or let the automatic paste do it |
+| The installer says Developer Mode still looks off | Quit Claude completely (also from the tray icon), open it again and run the installer again |
+| The automatic paste does nothing | Read the last lines of `%LOCALAPPDATA%\ClaudeBeautiful\autostart.log`: it says why, for example that the first paste by hand is still to do |
 
 ## Uninstall
+
+Windows, if you used the installer:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/tuananh6614/claude_beautiful/main/install.ps1))) -Uninstall
+```
+
+By hand, on any system:
 
 ```bash
 claude plugin uninstall honu@claude_theme
 claude plugin marketplace remove claude_theme
 ```
 
-Restart the app and the sky is gone.
+If you turned on the automatic paste by hand, turn it off too (the command is in [Paste it automatically](#paste-it-automatically-windows)). Restart the app and the sky is gone.
 
 ## In the browser (experimental)
 

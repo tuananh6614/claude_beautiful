@@ -2,9 +2,10 @@
 #   -Install    start with Windows (a shortcut in your Startup folder) and start waiting now
 #   -Uninstall  remove that shortcut and stop the waiting copy
 #   -Once       paste once into the open app, then exit
+#   -Show       open the app's developer tools in sight with the sky in the clipboard, for the first paste by hand
 # Needs Developer Mode on and one paste by hand with `allow pasting` first (README, steps 2 to 4).
 # Log: %LOCALAPPDATA%\ClaudeBeautiful\autostart.log
-param([switch]$Install, [switch]$Uninstall, [switch]$Once, [int]$Wait = 12, [string]$Source = "$PSScriptRoot\honu\pixel-troi.user.js")
+param([switch]$Install, [switch]$Uninstall, [switch]$Once, [switch]$Show, [int]$Wait = 12, [string]$Source = "$PSScriptRoot\honu\pixel-troi.user.js")
 $link = Join-Path ([Environment]::GetFolderPath('Startup')) 'Claude Beautiful.lnk'
 $dir = "$env:LOCALAPPDATA\ClaudeBeautiful"
 $log = "$dir\autostart.log"
@@ -53,6 +54,7 @@ public class ClaudeSkyWin {
   [DllImport("user32.dll", EntryPoint="GetWindowLongPtrW")] public static extern long GetL(IntPtr h, int i);
   [DllImport("user32.dll", EntryPoint="SetWindowLongPtrW")] public static extern long SetL(IntPtr h, int i, long v);
   [DllImport("user32.dll")] public static extern bool SetLayeredWindowAttributes(IntPtr h, uint k, byte a, uint f);
+  public static bool Hide = true;
   static IntPtr hit;
   static System.Threading.Thread watcher;
   static bool IsTools(IntPtr h) {
@@ -73,7 +75,7 @@ public class ClaudeSkyWin {
         EnumWindows(look, IntPtr.Zero);
         if (hit == IntPtr.Zero) System.Threading.Thread.Sleep(5);
       }
-      if (hit != IntPtr.Zero) { SetL(hit, -20, GetL(hit, -20) | 0x80020); SetLayeredWindowAttributes(hit, 0, 1, 2); }
+      if (hit != IntPtr.Zero && Hide) { SetL(hit, -20, GetL(hit, -20) | 0x80020); SetLayeredWindowAttributes(hit, 0, 1, 2); }
     });
     watcher.Start();
   }
@@ -134,7 +136,33 @@ function OpenTools($main) {
 
 function LastReport { Get-Content $web -Tail 300 -Encoding utf8 -ErrorAction SilentlyContinue | Where-Object { $_ -match '\[troi\]' } | Select-Object -Last 1 }
 
+Add-Type -AssemblyName System.Web.Extensions
+$json = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+$json.MaxJsonLength = [int]::MaxValue
+function ReadJson($p) { try { $json.DeserializeObject([IO.File]::ReadAllText($p)) } catch { $null } }
+
+# Where the app keeps its settings: the Store build, an MSIX copy, or the regular install.
+function AppDirs {
+  @(Get-ChildItem "$env:LOCALAPPDATA\Claude-Data" -Directory -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }) +
+  @(Get-ChildItem "$env:LOCALAPPDATA\Packages" -Directory -Filter 'Claude_*' -ErrorAction SilentlyContinue | ForEach-Object { "$($_.FullName)\LocalCache\Roaming\Claude" }) +
+  @("$env:APPDATA\Claude") | Where-Object { Test-Path "$_\Preferences" }
+}
+
+# The two things the owner turns on once, by hand: Developer Mode, and `allow pasting` in the Console.
+# Only read here; an app whose settings are not found is tried anyway.
+function Ready {
+  $dirs = @(AppDirs)
+  if (-not $dirs.Count) { return $true }
+  foreach ($d in $dirs) {
+    $tools = (ReadJson "$d\Preferences").electron.devtools.preferences
+    if ((ReadJson "$d\developer_settings.json").allowDevTools -eq $true -and $tools -and $tools['disable-self-xss-warning'] -eq 'true') { return $true }
+  }
+  $false
+}
+
 function Paste($main) {
+  # Without them every try would take the keyboard for nothing.
+  if (-not (Ready)) { Note 'not pasted: turn on Developer Mode and paste once by hand with allow pasting (README)'; return }
   $back = [ClaudeSkyWin]::GetForegroundWindow()
   $keepText = [Windows.Forms.Clipboard]::GetText(); $keepImage = [Windows.Forms.Clipboard]::GetImage(); $keepFiles = [Windows.Forms.Clipboard]::GetFileDropList()
   $before = LastReport
@@ -172,6 +200,19 @@ function Paste($main) {
 function MainWindow { AppWindows | Where-Object { $_.T -ceq 'Claude' } | Select-Object -First 1 }
 
 if ($Once) { $m = MainWindow; if ($m) { Paste $m.H } else { Note 'no Claude window' }; return }
+
+# The first paste stays with the owner: the Console opens in sight, with the sky in the clipboard.
+if ($Show) {
+  $m = MainWindow
+  if (-not $m) { 'Open Claude first, then run this again.'; return }
+  [Windows.Forms.Clipboard]::SetText([IO.File]::ReadAllText($Source))
+  $dev = Tools
+  if ($dev) { $h = $dev.H } else { [ClaudeSkyWin]::Hide = $false; $h = OpenTools $m.H; Start-Sleep -Seconds 2 }
+  if (Focus $h) { [Windows.Forms.SendKeys]::SendWait('^`') }
+  'The developer tools are open and the sky is in your clipboard. In their Console:'
+  '  type  allow pasting  and press Enter, then press Ctrl+V and Enter.'
+  return
+}
 
 # The same name as the owner's own copy, so two copies never paste twice.
 $created = $false
