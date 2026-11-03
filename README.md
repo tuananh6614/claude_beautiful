@@ -102,11 +102,11 @@ Optional. Do steps 1 to 4 by hand once first, so Developer Mode is on and the Co
 powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\.claude\plugins\marketplaces\claude_theme\autostart.ps1" -Install
 ```
 
-From now on a small script starts with Windows and waits. When the Claude app opens, it waits 12 seconds for the app to load, opens the developer tools out of sight, pastes the sky, closes them and puts your clipboard back. Close the app completely and open it again to see it work.
+From now on a small script starts with Windows and waits. When the Claude app opens, it waits 12 seconds for the app to load, opens the developer tools out of sight, pastes the sky, closes them and puts your clipboard back. The app sometimes reloads its page by itself, which takes the sky away: the script sees that in the app's log and pastes the sky again. Close the app completely and open it again to see it work.
 
 Good to know before you turn it on:
 
-- About 12 seconds after the app opens, the script takes the keyboard focus for about 12 seconds. If you click into another window in that moment, it stops instead of typing into the wrong window, and tries again the next time the app opens.
+- About 12 seconds after the app opens or reloads, the script takes the keyboard focus for about 12 seconds. If you click into another window in that moment, it stops instead of typing into the wrong window, and tries again the next time the app opens.
 - Each time the app opens, it runs the sky script from this plugin's folder on your computer (`honu/pixel-troi.user.js`). Only turn it on if you trust this repository.
 - What happened each time is written to `%LOCALAPPDATA%\ClaudeBeautiful\autostart.log`.
 

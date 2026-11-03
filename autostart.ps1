@@ -178,6 +178,21 @@ $created = $false
 $one = New-Object Threading.Mutex($true, 'Local\BauTroiTuDan', [ref]$created)
 if (-not $created) { return }
 
+# The app logs this line each time its page loads: when it opens, and when it reloads itself later.
+$load = '\[antalytics\] track\(\) called before init'
+$size = 0
+$since = Get-Date
+function PageLoaded {
+  $n = (Get-Item $web -ErrorAction SilentlyContinue).Length
+  if (-not $n -or $n -eq $script:size) { return $false }
+  $script:size = $n
+  foreach ($l in (Get-Content $web -Tail 300 -Encoding utf8 -ErrorAction SilentlyContinue)) {
+    $t = [datetime]::MinValue
+    if ($l -match $load -and [datetime]::TryParseExact($l.Substring(0, 19), 'yyyy-MM-dd HH:mm:ss', $null, 'None', [ref]$t) -and $t -gt $script:since) { return $true }
+  }
+  $false
+}
+
 $done = 0
 $m = MainWindow
 if ($m -and ((Get-Date) - (Get-Process -Id $m.P).StartTime).TotalSeconds -gt 180) { $done = $m.P }
@@ -185,11 +200,19 @@ Note "waiting, app already handled: $done"
 while ($true) {
   Start-Sleep -Seconds 3
   # Listing windows costs CPU: skip it while the app is closed or already done.
-  if ($done -and (Get-Process -Id $done -ErrorAction SilentlyContinue)) { continue }
+  if ($done -and (Get-Process -Id $done -ErrorAction SilentlyContinue)) {
+    # The same app, but its page loaded again and took the sky with it.
+    if (PageLoaded) {
+      Start-Sleep -Seconds $Wait
+      $m = MainWindow
+      if ($m) { Note "page reloaded, pid $done"; Paste $m.H; $since = Get-Date }
+    }
+    continue
+  }
   if (-not (Get-Process -Name claude -ErrorAction SilentlyContinue)) { continue }
   if (MainWindow) {
     Start-Sleep -Seconds $Wait
     $m = MainWindow
-    if ($m) { $done = $m.P; Note "app opened, pid $done"; Paste $m.H }
+    if ($m) { $done = $m.P; Note "app opened, pid $done"; Paste $m.H; $since = Get-Date }
   }
 }
