@@ -150,7 +150,8 @@ function Paste($main) {
     Keys $dev.H '^`'
     Start-Sleep -Milliseconds 500
     Keys $dev.H '^v'
-    Start-Sleep -Milliseconds 1500
+    # A big script takes a while to land in the Console, and an Enter before that runs nothing.
+    Start-Sleep -Milliseconds (1500 + [int]((Get-Item $Source).Length / 40))
     Keys $dev.H '{ENTER}'
     Start-Sleep -Seconds 1
   } catch { Note "stopped: $($_.Exception.Message)"; return }
