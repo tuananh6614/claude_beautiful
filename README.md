@@ -27,7 +27,7 @@ sun, storms, rainbows and moonlit nights, right behind your chat.
 
 ### Windows: one command
 
-Open **PowerShell** and run:
+Open **PowerShell** from the Start menu (not the terminal inside the Claude app, which closes with the app) and run:
 
 ```powershell
 irm https://raw.githubusercontent.com/tuananh6614/claude_beautiful/main/install.ps1 | iex

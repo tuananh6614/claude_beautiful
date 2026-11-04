@@ -28,6 +28,14 @@ if ($Install) {
   $s.Arguments = "-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$PSCommandPath`""
   $s.WindowStyle = 7
   $s.Save()
+  # Started from a terminal inside the Claude app, the waiting copy would stop when the app closes.
+  $p = Get-CimInstance Win32_Process -Filter "ProcessId = $PID"
+  for ($i = 0; $i -lt 8 -and $p -and $p.Name -ne 'claude.exe'; $i++) { $p = Get-CimInstance Win32_Process -Filter "ProcessId = $($p.ParentProcessId)" }
+  if ($p) {
+    'Installed. It starts by itself when you next sign in to Windows. To start it now, double-click "Claude Beautiful"'
+    'in your Startup folder: press Win+R, type shell:startup and press Enter.'
+    return
+  }
   if (-not (Waiting)) { Start-Process powershell.exe -ArgumentList $s.Arguments -WindowStyle Hidden }
   'Installed: from the next time Claude opens, the sky pastes itself. To undo, run this file with -Uninstall.'
   return
