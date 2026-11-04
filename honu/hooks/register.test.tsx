@@ -153,11 +153,28 @@ test('/quota hides the band', async ($, on) => {
   expect(await source($)).toBeUndefined()
 })
 
+test('a session start looks after the automatic paste, and only through its own script', async ($, on) => {
+  const runs: string[] = []
+  on('process.run', (_: unknown, e: { argv: readonly string[] }) => {
+    runs.push(e.argv.join(' '))
+    return { value: { exitCode: 0, stdout: '', stderr: '' } }
+  })
+  await start($, on)
+  expect(runs.length).toBe(1)
+  expect(runs[0]).toContain('keep-watcher.ps1')
+})
+
+test('a session start goes on when there is no PowerShell', async ($, on) => {
+  on('process.run', () => Promise.reject(new Error('no powershell')))
+  await start($, on, [FIVE])
+  expect(await source($)).toContain('31%')
+})
+
 test('/troi copies the sky script and reports a failure', async ($, on) => {
   let code = 0
   let argv: readonly string[] = []
   on('process.run', (_: unknown, e: { argv: readonly string[] }) => {
-    argv = e.argv
+    if (e.argv.join(' ').includes('pixel-troi')) argv = e.argv
     return { value: { exitCode: code, stdout: '', stderr: 'hong' } }
   })
   await start($, on)

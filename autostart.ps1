@@ -23,9 +23,11 @@ if ($Uninstall) {
 }
 if ($Install) {
   if (-not (Test-Path $Source)) { throw "Sky script not found: $Source" }
+  # Through conhost --headless: no console window at all, so Windows Terminal (when it is the default
+  # console) never shows it and nobody closes it by accident.
   $s = (New-Object -ComObject WScript.Shell).CreateShortcut($link)
-  $s.TargetPath = 'powershell.exe'
-  $s.Arguments = "-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$PSCommandPath`""
+  $s.TargetPath = "$env:WINDIR\System32\conhost.exe"
+  $s.Arguments = "--headless powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File `"$PSCommandPath`""
   $s.WindowStyle = 7
   $s.Save()
   # Started from a terminal inside the Claude app, the waiting copy would stop when the app closes.
@@ -36,7 +38,7 @@ if ($Install) {
     'in your Startup folder: press Win+R, type shell:startup and press Enter.'
     return
   }
-  if (-not (Waiting)) { Start-Process powershell.exe -ArgumentList $s.Arguments -WindowStyle Hidden }
+  if (-not (Waiting)) { Start-Process $s.TargetPath -ArgumentList $s.Arguments -WindowStyle Hidden }
   'Installed: from the next time Claude opens, the sky pastes itself. To undo, run this file with -Uninstall.'
   return
 }
@@ -283,7 +285,12 @@ function Settle {
 $done = 0
 $app = $null
 $m = MainWindow
-if ($m -and ((Get-Date) - (Get-Process -Id $m.P).StartTime).TotalSeconds -gt 180) { $done = $m.P; $app = Get-Process -Id $done }
+if ($m) {
+  $opened = (Get-Process -Id $m.P).StartTime
+  if (((Get-Date) - $opened).TotalSeconds -gt 180) { $done = $m.P; $app = Get-Process -Id $done }
+  # Started just after the app (by the plugin, after an update): its page-load line is already in the log.
+  else { $since = $opened.AddSeconds(-1); $size = [Math]::Max(0, $size - 65536) }
+}
 Note "waiting, app already handled: $done"
 # Every 2 seconds. While the app is open: a handle held on it and the log's length, both cheap.
 # While it is closed: a look for its process; listing windows only once it runs.

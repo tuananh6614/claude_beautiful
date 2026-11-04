@@ -133,6 +133,7 @@ Good to know before you turn it on:
 
 - A few seconds after the app opens or reloads, once you have stopped typing and clicking for 3 seconds, the script takes the keyboard focus for about 12 seconds. If you click somewhere in that moment, it stops instead of typing into the wrong window and tries again a little later, up to 3 times.
 - Each time the app opens, it runs the sky script from this plugin's folder on your computer (`honu/pixel-troi.user.js`). Only turn it on if you trust this repository.
+- The script runs with no window at all, so it never shows up in Windows Terminal. If something stops it anyway (Windows can close it while it updates the Claude app), the plugin starts it again the next time a Code session opens.
 - What happened each time is written to `%LOCALAPPDATA%\ClaudeBeautiful\autostart.log`.
 
 To turn it off:
