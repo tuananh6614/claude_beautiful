@@ -131,7 +131,8 @@ From now on a small script starts with Windows and waits. When the Claude app op
 
 Good to know before you turn it on:
 
-- A few seconds after the app opens or reloads, once you have stopped typing and clicking for 3 seconds, the script takes the keyboard focus for about 12 seconds. If you click somewhere in that moment, it stops instead of typing into the wrong window and tries again a little later, up to 3 times.
+- It waits until you are in the Claude window and have stopped typing and clicking for 3 seconds, so it never pulls Claude in front of a game or another app. Then it takes the keyboard for under a second at a time, three times, and gives it back in between. If you type or click during one of those moments, it stops before pressing Enter, so nothing lands in the wrong window, and tries again at your next pause, up to 6 times.
+- Your clipboard is put back afterwards, unless you copied something new in the meantime. The sky script never shows up in your clipboard history (Win+V).
 - Each time the app opens, it runs the sky script from this plugin's folder on your computer (`honu/pixel-troi.user.js`). Only turn it on if you trust this repository.
 - The script runs with no window at all, so it never shows up in Windows Terminal. If something stops it anyway (Windows can close it while it updates the Claude app), the plugin starts it again the next time a Code session opens.
 - What happened each time is written to `%LOCALAPPDATA%\ClaudeBeautiful\autostart.log`.
