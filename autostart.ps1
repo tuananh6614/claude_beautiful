@@ -251,30 +251,48 @@ if (-not $created) { return }
 
 # The app logs this line each time its page loads: when it opens, and when it reloads itself later.
 $load = '\[antalytics\] track\(\) called before init'
-$size = 0
+$size = [long](Get-Item $web -ErrorAction SilentlyContinue).Length
 $since = Get-Date
+# Reads only what the app wrote since the last look (plus a little overlap for a line cut in two).
 function PageLoaded {
-  $n = (Get-Item $web -ErrorAction SilentlyContinue).Length
+  $fi = [IO.FileInfo]$web
+  if (-not $fi.Exists) { return $false }
+  $n = $fi.Length
   if (-not $n -or $n -eq $script:size) { return $false }
+  $from = if ($n -gt $script:size) { [Math]::Max(0, $script:size - 300) } else { [Math]::Max(0, $n - 65536) }
   $script:size = $n
-  foreach ($l in (Get-Content $web -Tail 300 -Encoding utf8 -ErrorAction SilentlyContinue)) {
+  try {
+    $fs = [IO.File]::Open($web, 'Open', 'Read', 'ReadWrite')
+    try { [void]$fs.Seek($from, 'Begin'); $text = (New-Object IO.StreamReader($fs, [Text.Encoding]::UTF8)).ReadToEnd() } finally { $fs.Dispose() }
+  } catch { return $false }
+  foreach ($l in $text -split "`n") {
     $t = [datetime]::MinValue
-    if ($l -match $load -and [datetime]::TryParseExact($l.Substring(0, 19), 'yyyy-MM-dd HH:mm:ss', $null, 'None', [ref]$t) -and $t -gt $script:since) { return $true }
+    if ($l -match $load -and $l.Length -ge 19 -and [datetime]::TryParseExact($l.Substring(0, 19), 'yyyy-MM-dd HH:mm:ss', $null, 'None', [ref]$t) -and $t -gt $script:since) { return $true }
   }
   $false
 }
 
-$done = 0
-$m = MainWindow
-if ($m -and ((Get-Date) - (Get-Process -Id $m.P).StartTime).TotalSeconds -gt 180) { $done = $m.P }
-Note "waiting, app already handled: $done"
-while ($true) {
+# A fresh app is ready once its page has logged that line; 3 more seconds let it settle.
+# Without the line, this waits $Wait seconds in all.
+function Settle {
+  $t = [Diagnostics.Stopwatch]::StartNew()
+  while (-not (PageLoaded) -and $t.Elapsed.TotalSeconds -lt $Wait - 3) { Start-Sleep -Milliseconds 500 }
   Start-Sleep -Seconds 3
-  # Listing windows costs CPU: skip it while the app is closed or already done.
-  if ($done -and (Get-Process -Id $done -ErrorAction SilentlyContinue)) {
+}
+
+$done = 0
+$app = $null
+$m = MainWindow
+if ($m -and ((Get-Date) - (Get-Process -Id $m.P).StartTime).TotalSeconds -gt 180) { $done = $m.P; $app = Get-Process -Id $done }
+Note "waiting, app already handled: $done"
+# Every 2 seconds. While the app is open: a handle held on it and the log's length, both cheap.
+# While it is closed: a look for its process; listing windows only once it runs.
+while ($true) {
+  Start-Sleep -Seconds 2
+  if ($app -and -not $app.HasExited) {
     # The same app, but its page loaded again and took the sky with it.
     if (PageLoaded) {
-      Start-Sleep -Seconds $Wait
+      Start-Sleep -Seconds 3
       $m = MainWindow
       if ($m) { Note "page reloaded, pid $done"; Attempt; $since = Get-Date }
     }
@@ -282,8 +300,8 @@ while ($true) {
   }
   if (-not (Get-Process -Name claude -ErrorAction SilentlyContinue)) { continue }
   if (MainWindow) {
-    Start-Sleep -Seconds $Wait
+    Settle
     $m = MainWindow
-    if ($m) { $done = $m.P; Note "app opened, pid $done"; Attempt; $since = Get-Date }
+    if ($m) { $done = $m.P; $app = Get-Process -Id $done; Note "app opened, pid $done"; Attempt; $since = Get-Date }
   }
 }

@@ -127,11 +127,11 @@ The Windows installer sets this up for you. If you installed step by step, do st
 powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\.claude\plugins\marketplaces\claude_theme\autostart.ps1" -Install
 ```
 
-From now on a small script starts with Windows and waits. When the Claude app opens, it waits 12 seconds for the app to load, opens the developer tools out of sight, pastes the sky, closes them and puts your clipboard back. The app sometimes reloads its page by itself, which takes the sky away: the script sees that in the app's log and pastes the sky again. Close the app completely and open it again to see it work.
+From now on a small script starts with Windows and waits. When the Claude app opens, it waits for the app's page to load (a few seconds), opens the developer tools out of sight, pastes the sky, closes them and puts your clipboard back. The sky shows up about 15 to 20 seconds after the app opens. The app sometimes reloads its page by itself, which takes the sky away: the script sees that in the app's log and pastes the sky again. Close the app completely and open it again to see it work.
 
 Good to know before you turn it on:
 
-- About 12 seconds after the app opens or reloads, once you have stopped typing and clicking for 3 seconds, the script takes the keyboard focus for about 12 seconds. If you click somewhere in that moment, it stops instead of typing into the wrong window and tries again a little later, up to 3 times.
+- A few seconds after the app opens or reloads, once you have stopped typing and clicking for 3 seconds, the script takes the keyboard focus for about 12 seconds. If you click somewhere in that moment, it stops instead of typing into the wrong window and tries again a little later, up to 3 times.
 - Each time the app opens, it runs the sky script from this plugin's folder on your computer (`honu/pixel-troi.user.js`). Only turn it on if you trust this repository.
 - What happened each time is written to `%LOCALAPPDATA%\ClaudeBeautiful\autostart.log`.
 
