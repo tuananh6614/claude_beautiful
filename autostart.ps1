@@ -54,6 +54,9 @@ public class ClaudeSkyWin {
   [DllImport("user32.dll", EntryPoint="GetWindowLongPtrW")] public static extern long GetL(IntPtr h, int i);
   [DllImport("user32.dll", EntryPoint="SetWindowLongPtrW")] public static extern long SetL(IntPtr h, int i, long v);
   [DllImport("user32.dll")] public static extern bool SetLayeredWindowAttributes(IntPtr h, uint k, byte a, uint f);
+  [StructLayout(LayoutKind.Sequential)] public struct LastInput { public uint Size; public uint Time; }
+  [DllImport("user32.dll")] static extern bool GetLastInputInfo(ref LastInput l);
+  public static uint IdleMs() { LastInput l = new LastInput(); l.Size = (uint)Marshal.SizeOf(typeof(LastInput)); GetLastInputInfo(ref l); return unchecked((uint)Environment.TickCount - l.Time); }
   public static bool Hide = true;
   static IntPtr hit;
   static System.Threading.Thread watcher;
@@ -162,7 +165,7 @@ function Ready {
 
 function Paste($main) {
   # Without them every try would take the keyboard for nothing.
-  if (-not (Ready)) { Note 'not pasted: turn on Developer Mode and paste once by hand with allow pasting (README)'; return }
+  if (-not (Ready)) { Note 'not pasted: turn on Developer Mode and paste once by hand with allow pasting (README)'; return 'notready' }
   $back = [ClaudeSkyWin]::GetForegroundWindow()
   $keepText = [Windows.Forms.Clipboard]::GetText(); $keepImage = [Windows.Forms.Clipboard]::GetImage(); $keepFiles = [Windows.Forms.Clipboard]::GetFileDropList()
   $before = LastReport
@@ -182,7 +185,7 @@ function Paste($main) {
     Start-Sleep -Milliseconds (1500 + [int]((Get-Item $Source).Length / 40))
     Keys $dev.H '{ENTER}'
     Start-Sleep -Seconds 1
-  } catch { Note "stopped: $($_.Exception.Message)"; return }
+  } catch { Note "stopped: $($_.Exception.Message)"; return 'stopped' }
   finally {
     # Closed on every path: a stopped paste must not leave an invisible DevTools window behind.
     if ($dev) { [void][ClaudeSkyWin]::PostMessage($dev.H, 0x10, [IntPtr]::Zero, [IntPtr]::Zero) }
@@ -194,7 +197,26 @@ function Paste($main) {
   }
   Start-Sleep -Seconds 25
   $after = LastReport
-  if ($after -and $after -ne $before) { Note "ok: $after" } else { Note 'pasted, but no sky report in the app log' }
+  if ($after -and $after -ne $before) { Note "ok: $after"; return 'ok' }
+  Note 'pasted, but no sky report in the app log'
+  'quiet'
+}
+
+# Waits for a pause in typing and clicking, so the paste does not cut into the owner's work.
+function WaitIdle { $t = [Diagnostics.Stopwatch]::StartNew(); while ([ClaudeSkyWin]::IdleMs() -lt 3000 -and $t.Elapsed.TotalSeconds -lt 120) { Start-Sleep -Milliseconds 500 } }
+
+# A paste can be cut short by a click, or by the app taking the focus while it starts: try again.
+function Attempt {
+  $quiet = 0
+  for ($i = 1; $i -le 3; $i++) {
+    WaitIdle
+    $m = MainWindow
+    if (-not $m) { return }
+    $r = Paste $m.H
+    if ($r -eq 'ok' -or $r -eq 'notready' -or ($r -eq 'quiet' -and (++$quiet) -ge 2)) { return }
+    Start-Sleep -Seconds 15
+  }
+  Note 'gave up for now: it tries again when the app opens or reloads'
 }
 
 function MainWindow { AppWindows | Where-Object { $_.T -ceq 'Claude' } | Select-Object -First 1 }
@@ -246,7 +268,7 @@ while ($true) {
     if (PageLoaded) {
       Start-Sleep -Seconds $Wait
       $m = MainWindow
-      if ($m) { Note "page reloaded, pid $done"; Paste $m.H; $since = Get-Date }
+      if ($m) { Note "page reloaded, pid $done"; Attempt; $since = Get-Date }
     }
     continue
   }
@@ -254,6 +276,6 @@ while ($true) {
   if (MainWindow) {
     Start-Sleep -Seconds $Wait
     $m = MainWindow
-    if ($m) { $done = $m.P; Note "app opened, pid $done"; Paste $m.H; $since = Get-Date }
+    if ($m) { $done = $m.P; Note "app opened, pid $done"; Attempt; $since = Get-Date }
   }
 }
